@@ -5,29 +5,65 @@ import random
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+def samplify(arr, timestep):
+    """
+    gathers samples at timestep intervals, cuts off the last segment if it does not get filled
+    """
+    samples = []
+    for i in range(0, arr.shape[0], timestep):
+        sample = arr[i:i+timestep]
+        if len(sample) == timestep:
+            samples.append(sample)
+
+    return np.array(samples)
+
 class Loader(keras.utils.Sequence):
 
-    def __init__(self, path):
+    def __init__(self, path, timestep=50):
         """
         segment_size is the number of seconds allocated to each segment of the signal, in seconds
         """
         self.path = path
         if not os.path.exists(self.path):
             raise FileNotFoundError
-        self.shuffled_walk = [(r, d, f) for r, d, f in os.walk(path)]
-        #random.shuffle(self.shuffled_walk)
+        self.walk = [(r, d, f) for r, d, f in os.walk(path)]
+        self.timestep = timestep
 
     def __iter__(self):
-        for root, dirs, files in self.shuffled_walk:
+        for root, dirs, files in self.walk:
             for f in files:
                 if re.match(".*\.npz$", f):
                     npz_path = os.path.join(root, f)
                     x, y = self.load_segments_from_file(npz_path)
-                    x_train, y_train, x_test, y_test = train_test_split(x, y, test_size=0.2)
-                    yield (x_train, y_train, x_test, y_test)
+
+
+                    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+                    x_train = np.squeeze(x_train)
+                    x_test = np.squeeze(x_test)
+                    y_train = np.squeeze(y_train)
+                    y_test = np.squeeze(y_test)
+                    #print(x_train.shape)
+                    #print("----------------------------------------")
+                    x_train = samplify(x_train, self.timestep)
+                    x_test = samplify(x_test, self.timestep)
+                    y_train = samplify(y_train, self.timestep)
+                    y_test = samplify(y_test, self.timestep)
+                    #print(x_train.shape)
+                    #exit()
+                    #x_test = self._batchify(x_test)
+                    #y_train = self._batchify(y_train)
+                    #y_test = self._batchify(y_test)
+                    #x_train = np.squeeze(x_train)
+                    #x_test = np.squeeze(x_test)
+                    #y_train = np.squeeze(y_train)
+                    #y_test = np.squeeze(y_test)
+                    yield (x_train, x_test, y_train, y_test)
+
+    def get_all(self):
+        return [i for i in self]
 
     def __len__(self):
-        return len(self.shuffled_walk)
+        return len(self.walk)
 
     def load_segments_from_file(self, input_file):
         # dict of signals, each signal is a list of numpy arrays, each numpy array is one segment (i.e. 30s of signal)
