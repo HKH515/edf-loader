@@ -14,7 +14,7 @@ pip3 install -r requirements.txt
 import sys
 sys.path.append("path_to_edfloader_folder")
 from Loader import Loader
-loader = Loader("/path/to/folder/of/edf/files/")
+loader = Loader("/path/to/folder/of/edf/files/", ["eog_l", "eog_r"], ["spo2"])
 for x_train, x_test, y_train, y_test in loader.load(test_size=0.3):
     # use data for ML, etc.
 ```
