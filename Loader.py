@@ -26,7 +26,6 @@ def samplify_df(df, timestep):
     returns df, but with each column samplified
     """
     new_df = pd.DataFrame()
-    print(df)
     for col in df:
         new_df[col] = samplify(df[col], timestep)
     return new_df
@@ -56,20 +55,18 @@ class Loader:
         """
         Parameters
         ----------
-        onehot : bool
-                whether y_train and y_test should be converted to onehot encoded numpy vectors
+        test_size : 
+            either a floating point from 0..1, describing the percentage of samples to use for testing, or the number of samples to use for testing.
         """
         for root, dirs, files in self.walk:
             for f in files:
                 try:
-                    print("asdf")
                     edf_path = os.path.join(root, f)
-                    print("loading %s" % edf_path)
                     x, y = self._load_file(edf_path)
                     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size)
                     yield (x_train, x_test, y_train, y_test)
                 except OSError as e:
-                    print(e)
+                    print("Loader.py error: %s" % e)
                     continue
 
     #def load_3d(self, timestep, onehot=False):
@@ -127,14 +124,10 @@ class Loader:
 
         reader = EdfReader(input_file)
         channel_names = reader.getSignalLabels()
-        print(channel_names)
         channel_names_dict = {channel_names[i]:i for i in range(len(channel_names))}
         x_channels_to_process = set(channel_names).intersection(set(self.x_channels))
         y_channels_to_process = set(channel_names).intersection(set(self.y_channels))
 
-        print("dsafdsf: %s" % x_channels_to_process)
-        for name in channel_names:
-            print("freq(%s): %s" % (name, reader.getSampleFrequency(channel_names_dict[name])))
 
         x_channel_data_dict = {channel: reader.readSignal(channel_names_dict[channel]) for channel in x_channels_to_process}
         y_channel_data_dict = {channel: reader.readSignal(channel_names_dict[channel]) for channel in y_channels_to_process}
