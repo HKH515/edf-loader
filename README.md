@@ -2,7 +2,7 @@
     <img src="https://user-images.githubusercontent.com/5413669/61218523-baa9b200-a701-11e9-9856-fcfa39474466.png"/>
 </p>
 
-Python library to load channels in EDF files as a pandas dataframe.
+Python library to load channels in EDF files as a pandas dataframe, with support for train/test set splitting.
 
 # Setup
 ```bash
