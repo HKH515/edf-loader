@@ -1,5 +1,4 @@
 import os
-import keras
 import re
 import random
 import numpy as np
@@ -7,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from pyedflib import EdfReader
 import pandas as pd
 pd.set_option('display.max_rows', 500)
+import sys
 import matplotlib.pyplot as plt
 
 def samplify(arr, timestep):
@@ -57,14 +57,18 @@ class Loader:
         ----------
         test_size : 
             either a floating point from 0..1, describing the percentage of samples to use for testing, or the number of samples to use for testing.
+            If test_size is 0, returns only test data.
         """
         for root, dirs, files in self.walk:
             for f in files:
                 try:
                     edf_path = os.path.join(root, f)
                     x, y = self._load_file(edf_path)
-                    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size)
-                    yield (x_train, x_test, y_train, y_test)
+                    if test_size != 0:
+                        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size)
+                        yield (x_train, x_test, y_train, y_test)
+                    else:
+                        yield (x, y, None, None)
                 except OSError as e:
                     print("Loader.py error: %s" % e)
                     continue
@@ -148,12 +152,13 @@ def max_item(items):
 
 
 if __name__ == "__main__":
+    location = sys.argv[1]
     # this is a fabricated example and the variables and channels used do not reflect real world usage
-    loader = Loader("/home/hannes/repos/edf-consister/output/", ["eog_l"], ["chin"])
+    loader = Loader(location, ['EEG Fpz-Cz'], ['EEG Fpz-Cz'])
     #ret = loader._load_file("/home/hannes/datasets/stanford_edfs/IS-RC/AL_10_021708.edf")
     #ret = loader._load_file("/home/hannes/repos/edf-consister/output/al_10_021708.edf")
-    for x_train, x_test, y_train, y_test in loader.load(0.45):
+    for x_train, x_test, y_train, y_test in loader.load(0):
         print(len(x_train))
         print(len(x_test))
-        print(len(y_train))
-        print(len(y_test))
+        # print(len(y_train))
+        # print(len(y_test))
