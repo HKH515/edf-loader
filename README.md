@@ -15,6 +15,16 @@ import sys
 sys.path.append("path_to_edfloader_folder")
 from Loader import Loader
 loader = Loader("/path/to/folder/of/edf/files/", ["eog_l", "eog_r"], ["spo2"])
-for x_train, x_test, y_train, y_test in loader.load(test_size=0.3):
-    # use data for ML, etc.
+x, y = loader.load()
+```
+**x** and **y** will be dictionaries with channel names as the keys. and dictionaries with sampling frequency and data key-value pairs.
+```
+x = {
+    "eog_l": {"sampling_frequency": 100, "data":[...]},
+    "eog_r": {"sampling_frequency": 100, "data":[...]}
+}
+
+y = {
+    "spo2": {"sampling_frequency": 1, "data": [...]}
+}
 ```

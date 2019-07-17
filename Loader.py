@@ -51,24 +51,32 @@ class Loader:
         self.x_channels = x_channels
         self.y_channels = y_channels
 
-    def load(self, test_size=0.2):
+    def load(self, return_missing=False):
         """
         Parameters
         ----------
-        test_size : 
-            either a floating point from 0..1, describing the percentage of samples to use for testing, or the number of samples to use for testing.
-            If test_size is 0, returns only test data.
+            return_missing : bool
+                    if true, returns triple (x, y, missing), 
+                    where missing is true if the returned 
+                    batch is loaded from a file that is 
+                    missing one or more of the requested
+                    channels.
+        Returns
+        ----------
+            tuple = (
+                x data, y data
+            )
         """
         for root, dirs, files in self.walk:
             for f in files:
                 try:
                     edf_path = os.path.join(root, f)
-                    x, y = self._load_file(edf_path)
-                    if test_size != 0:
-                        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size)
-                        yield (x_train, x_test, y_train, y_test)
+                    if return_missing:
+                        x, y, missing = self._load_file(edf_path, return_missing=return_missing)
+                        yield (x, y, missing)
                     else:
-                        yield (x, y, None, None)
+                        x, y = self._load_file(edf_path)
+                        yield (x, y)
                 except OSError as e:
                     print("Loader.py error: %s" % e)
                     continue
@@ -111,12 +119,16 @@ class Loader:
 
 
 
-    def _load_file(self, input_file):
+    def _load_file(self, input_file, return_missing=False):
         """
         Parameters
         ----------
         input_file : str
                     path of the file which to load
+        return_missing : bool
+                    if true, returns triple (x, y, missing)
+                    where missing is true if input_file does 
+                    contain one or more of the requested channels.
         Returns
         -------
         tuple
@@ -132,14 +144,57 @@ class Loader:
         x_channels_to_process = set(channel_names).intersection(set(self.x_channels))
         y_channels_to_process = set(channel_names).intersection(set(self.y_channels))
 
+        x_not_present = set(self.x_channels).difference(set(self.x_channels).intersection(set(channel_names)))
+        y_not_present = set(self.y_channels).difference(set(self.y_channels).intersection(set(channel_names)))
+        not_present = x_not_present.union(y_not_present)
 
-        x_channel_data_dict = {channel: reader.readSignal(channel_names_dict[channel]) for channel in x_channels_to_process}
-        y_channel_data_dict = {channel: reader.readSignal(channel_names_dict[channel]) for channel in y_channels_to_process}
+        #return this with x and y to detect missing channels.
+        missing = len(not_present) != 0
+        #report missing channels 
+        if missing:
+            not_present = [i for i in not_present]
+            print(f'File \'{input_file}\' does not have channels: {not_present}')
+        
+        
+        # Create data dictionaries 
+        x_channel_data_dict = {} 
+        for i in x_channels_to_process:
+            x_channel_data_dict[i] = {
+                "sampling_frequency": reader.getSampleFrequency(channel_names_dict[i]),
+                "data": reader.readSignal(channel_names_dict[i])
+            }
+        
+        y_channel_data_dict = {} 
+        for i in y_channels_to_process:
+            y_channel_data_dict[i] = {
+                "sampling_frequency": reader.getSampleFrequency(channel_names_dict[i]),
+                "data": reader.readSignal(channel_names_dict[i])
+            }
+        
+        if return_missing: 
+            return x_channel_data_dict, y_channel_data_dict, missing
+        else:
+            return x_channel_data_dict, y_channel_data_dict
 
-        x_df = pd.DataFrame(x_channel_data_dict)
-        y_df = pd.DataFrame(y_channel_data_dict)
+        # create data dictionaries 
+        # x_channel_data_dict = {
+        #     channel: reader.readSignal(channel_names_dict[channel]) 
+        #               for channel in x_channels_to_process}
+        # y_channel_data_dict = {
+        #     channel: reader.readSignal(channel_names_dict[channel])
+        #               for channel in y_channels_to_process}
+        
+        # # extract sampling frequencies.
+        # x_sfs = {f"{channel}_sf": [reader.getSampleFrequency(channel_names_dict[channel])] for channel in x_channels_to_process }
+        # y_sfs = {f"{channel}_sf": [reader.getSampleFrequency(channel_names_dict[channel])] for channel in y_channels_to_process }
 
-        return (x_df, y_df)
+        # # concat the data streams and the sampling frequencies
+        # x_df = pd.concat([pd.DataFrame(x_channel_data_dict), pd.DataFrame(x_sfs)], axis=1)
+        # y_df = pd.concat([pd.DataFrame(y_channel_data_dict), pd.DataFrame(y_sfs)], axis=1)
+
+        # print(x_df)
+
+        # return (x_df, y_df)
 
 def max_item(items):
     maxv = 0
@@ -154,10 +209,10 @@ def max_item(items):
 if __name__ == "__main__":
     location = sys.argv[1]
     # this is a fabricated example and the variables and channels used do not reflect real world usage
-    loader = Loader(location, ['EEG Fpz-Cz'], ['EEG Fpz-Cz'])
+    loader = Loader(location, ['EEG Fpz-Cz', 'EEG Pz-Oz', 'EOG horizontal', 'Resp oro-nasal', 'EMG Submental', 'not_yeeet'], ['EEG Fpz-Cz'])
     #ret = loader._load_file("/home/hannes/datasets/stanford_edfs/IS-RC/AL_10_021708.edf")
     #ret = loader._load_file("/home/hannes/repos/edf-consister/output/al_10_021708.edf")
-    for x_train, x_test, y_train, y_test in loader.load(0):
+    for x_train, x_test, y_train, y_test in loader.load():
         print(len(x_train))
         print(len(x_test))
         # print(len(y_train))
