@@ -9,26 +9,38 @@ pd.set_option('display.max_rows', 500)
 import sys
 import matplotlib.pyplot as plt
 
-def samplify(arr, timestep):
+def samplify(channel_dict, seconds):
     """
-    gathers samples at timestep intervals, cuts off the last segment if it does not get filled
+    Parameters
+    ----
+        channel_dict : Similar to what is returned from load
+        seconds : int 
+    Returns
+        Channel dict similar to what is returned from load except
+        the data fields are split up into arrays of length sampling_frequency * seconds
+    ---- 
+    This function drops the last (data % step) segments ! 
+    ---
     """
-    samples = []
-    for i in range(0, arr.shape[0], timestep):
-        sample = arr[i:i+timestep]
-        if len(sample) == timestep:
-            samples.append(sample)
+    ret_dict = {}
+    for i in channel_dict:
+        #find how many datapoints are in a <seconds> duration recording
+        step = channel_dict[i]['sampling_frequency'] * seconds
+        data = channel_dict[i]['data']
+        # drop the last 30 seconds...
+        data = data[: len(data) - (len(data) % step )   ]
+        data = np.split(data, len(data)/step )
+        ret_dict[i] = {'sampling_frequency': channel_dict[i]['sampling_frequency'], 'data': data}
 
-    return np.array(samples)
+    return ret_dict
+
 
 def samplify_df(df, timestep):
+    """ 
+    This has been deprecated, as wer are no longer using dataframes
+    ---
     """
-    returns df, but with each column samplified
-    """
-    new_df = pd.DataFrame()
-    for col in df:
-        new_df[col] = samplify(df[col], timestep)
-    return new_df
+    raise(Exception('Deprecated'))
 
 class Loader:
     def __init__(self, path, x_channels, y_channels):
@@ -131,11 +143,10 @@ class Loader:
                     contain one or more of the requested channels.
         Returns
         -------
-        tuple
-            (
-                pd.DataFrame,
-                pd.DataFrame
-            )
+        tuple (
+            x : {'channelname': {'sampling_frequency': 100, 'data': np.array}, ... }
+            y : {'channelname': {'sampling_frequency': 100, 'data': np.array}, ... }
+        )
         """
 
         reader = EdfReader(input_file)
@@ -196,6 +207,7 @@ class Loader:
 
         # return (x_df, y_df)
 
+
 def max_item(items):
     maxv = 0
     maxk = None
@@ -212,8 +224,13 @@ if __name__ == "__main__":
     loader = Loader(location, ['EEG Fpz-Cz', 'EEG Pz-Oz', 'EOG horizontal', 'Resp oro-nasal', 'EMG Submental', 'not_yeeet'], ['EEG Fpz-Cz'])
     #ret = loader._load_file("/home/hannes/datasets/stanford_edfs/IS-RC/AL_10_021708.edf")
     #ret = loader._load_file("/home/hannes/repos/edf-consister/output/al_10_021708.edf")
-    for x_train, x_test, y_train, y_test in loader.load():
-        print(len(x_train))
-        print(len(x_test))
-        # print(len(y_train))
+
+
+    for x_train, x_test in loader.load():
+        x_train = samplify(x_train, 30)
+        for i in x_train:
+            print( f'{i}\t{x_train[i]["sampling_frequency"]}\t{len( x_train[i]["data"])} ' )
+        # print(len(x_train))
+        # print(len(x_test))
+        # # print(len(y_train))
         # print(len(y_test))
