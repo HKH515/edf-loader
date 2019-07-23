@@ -24,6 +24,7 @@ def samplify(channel_dict, seconds):
     """
     ret_dict = {}
     for i in channel_dict:
+
         #find how many datapoints are in a <seconds> duration recording
         step = channel_dict[i]['sampling_frequency'] * seconds
         data = channel_dict[i]['data']
@@ -221,16 +222,16 @@ def max_item(items):
 if __name__ == "__main__":
     location = sys.argv[1]
     # this is a fabricated example and the variables and channels used do not reflect real world usage
-    loader = Loader(location, ['EEG Fpz-Cz', 'EEG Pz-Oz', 'EOG horizontal', 'Resp oro-nasal', 'EMG Submental', 'not_yeeet'], ['EEG Fpz-Cz'])
+    loader = Loader(location, ['EEG Fpz-Cz' ], ['EEG Fpz-Cz'])
     #ret = loader._load_file("/home/hannes/datasets/stanford_edfs/IS-RC/AL_10_021708.edf")
     #ret = loader._load_file("/home/hannes/repos/edf-consister/output/al_10_021708.edf")
 
 
+    fig = plt.figure() 
+    ax = fig.add_subplot(111)
+    
+
     for x_train, x_test in loader.load():
         x_train = samplify(x_train, 30)
-        for i in x_train:
-            print( f'{i}\t{x_train[i]["sampling_frequency"]}\t{len( x_train[i]["data"])} ' )
-        # print(len(x_train))
-        # print(len(x_test))
-        # # print(len(y_train))
-        # print(len(y_test))
+        for i in x_train: 
+            print(f'{i}:\t{len(x_train[i]["data"])}\t{x_train[i]["sampling_frequency"]}')
