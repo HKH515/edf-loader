@@ -11,11 +11,14 @@ pip3 install -e .
 
 # Usage
 ```python
-import sys
-sys.path.append("path_to_edfloader_folder")
+
 from Loader import Loader, samplify
-loader = Loader("/path/to/folder/of/edf/files/", ["eog_l", "eog_r"], ["spo2"])
-x, y = loader.load()
+
+loader = Loader("path/to/edf/folder", ["O1-A2"], ["SAO2"])
+
+for x, y in loader.load():
+    # do something with data here
+
 ```
 **x** and **y** will be dictionaries with channel names as the keys. and dictionaries with sampling frequency and data key-value pairs.
 ```
