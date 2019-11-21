@@ -13,5 +13,6 @@ setup(
     install_requires=reqs,  # external packages as dependencies
     scripts=[
         'Loader.py',
-    ]
+    ],
+    py_modules=["Loader"]
 )
